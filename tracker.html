@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trip Tracker</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Firebase v9 compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --main-bg: linear-gradient(to bottom right, #0d47a1, #000000);
+      --card-bg: #181c24;
+      --primary: #42a5f5;
+      --accent: #bbdefb;
+      --border: #212a40;
+      --green: #43a047;
+      --red: #e53935;
+      --note: #ffc107;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+      background: var(--main-bg);
+      background-attachment: fixed;
+      background-size: cover;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: #fff;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .page-header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+    .page-header span { font-size: 1.8rem; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Camera ── */
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      min-height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #camera-feed {
+      width: 100%;
+      max-height: 420px;
+      object-fit: cover;
+      display: block;
+      border-radius: 12px;
+    }
+    #camera-placeholder {
+      color: #555;
+      font-size: 0.95rem;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .speed-badge {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 999px;
+      backdrop-filter: blur(4px);
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      display: none;
+    }
+    .rec-indicator {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(229,57,53,0.85);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      animation: blink 1.2s infinite;
+    }
+    .rec-dot { width: 8px; height: 8px; background: #fff; border-radius: 50%; }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+    /* ── Buttons row ── */
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-blue   { background: var(--primary); color: #fff; }
+    .btn-green  { background: var(--green);   color: #fff; }
+    .btn-red    { background: var(--red);     color: #fff; }
+    .btn-yellow { background: var(--note);    color: #111; }
+
+    /* ── Map ── */
+    #map {
+      width: 100%;
+      height: 340px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #111;
+    }
+
+    /* ── Info panel ── */
+    .info-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .info-chip {
+      background: #0d1520;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.82rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 130px;
+    }
+    .info-chip .label { color: #7aa; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; }
+    .info-chip .value { color: #fff; font-weight: 700; font-size: 0.95rem; }
+
+    /* ── Trip summary ── */
+    .summary-box {
+      background: #0d1520;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 0.88rem;
+      line-height: 1.8;
+      display: none;
+    }
+    .summary-box .highlight { color: var(--note); font-weight: 700; }
+
+    /* ── Status bar ── */
+    #status-bar {
+      font-size: 0.82rem;
+      color: #7aa;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="page-header">
+    <span>🚗</span>
+    <h1>Trip Tracker</h1>
+  </div>
+
+  <!-- Camera Card -->
+  <div class="card">
+    <div class="card-title">📷 Camera</div>
+
+    <div class="video-wrapper" id="video-wrapper">
+      <div id="camera-placeholder">📷 Camera is off. Click "Open Camera" to start.</div>
+      <video id="camera-feed" autoplay muted playsinline style="display:none;"></video>
+      <div class="speed-badge" id="speed-badge">⚡ 0 km/h</div>
+      <div class="rec-indicator" id="rec-indicator">
+        <div class="rec-dot"></div> REC
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-blue" id="btn-camera">📷 Open Camera</button>
+      <button class="btn btn-red"  id="btn-record" disabled>🎥 Start Recording</button>
+    </div>
+  </div>
+
+  <!-- Map & Trip Card -->
+  <div class="card">
+    <div class="card-title">🗺️ Live Location</div>
+
+    <div id="map"></div>
+
+    <div class="info-panel">
+      <div class="info-chip">
+        <span class="label">Latitude</span>
+        <span class="value" id="info-lat">—</span>
+      </div>
+      <div class="info-chip">
+        <span class="label">Longitude</span>
+        <span class="value" id="info-lng">—</span>
+      </div>
+      <div class="info-chip">
+        <span class="label">Speed</span>
+        <span class="value" id="info-speed">0 km/h</span>
+      </div>
+      <div class="info-chip">
+        <span class="label">Distance</span>
+        <span class="value" id="info-dist">0.00 km</span>
+      </div>
+      <div class="info-chip">
+        <span class="label">Duration</span>
+        <span class="value" id="info-dur">00:00</span>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-green" id="btn-trip">▶️ Start Trip</button>
+    </div>
+
+    <div id="status-bar">Waiting for location…</div>
+
+    <div class="summary-box" id="summary-box"></div>
+  </div>
+
+</div>
+
+<script>
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 🔧 REPLACE WITH YOUR FIREBASE CONFIG
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // ── DOM refs ──────────────────────────────────────────────────────────────────
+  const btnCamera   = document.getElementById('btn-camera');
+  const btnRecord   = document.getElementById('btn-record');
+  const btnTrip     = document.getElementById('btn-trip');
+  const videoEl     = document.getElementById('camera-feed');
+  const placeholder = document.getElementById('camera-placeholder');
+  const speedBadge  = document.getElementById('speed-badge');
+  const recIndicator= document.getElementById('rec-indicator');
+  const infoLat     = document.getElementById('info-lat');
+  const infoLng     = document.getElementById('info-lng');
+  const infoSpeed   = document.getElementById('info-speed');
+  const infoDist    = document.getElementById('info-dist');
+  const infoDur     = document.getElementById('info-dur');
+  const statusBar   = document.getElementById('status-bar');
+  const summaryBox  = document.getElementById('summary-box');
+
+  // ── State ─────────────────────────────────────────────────────────────────────
+  let cameraStream    = null;
+  let mediaRecorder   = null;
+  let recordedChunks  = [];
+  let watchId         = null;
+  let tripActive      = false;
+  let tripStartTime   = null;
+  let tripPath        = [];      // [{lat, lng}]
+  let totalDistanceKm = 0;
+  let lastLatLng      = null;
+  let currentSpeedKmh = 0;
+  let durationTimer   = null;
+  let currentTripId   = null;   // Firestore doc id for current trip
+
+  // ── Geolocation options ───────────────────────────────────────────────────────
+  const GEO_OPTIONS = {
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 15000
+  };
+
+  // ── Map ───────────────────────────────────────────────────────────────────────
+  const map = L.map('map').setView([0, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(map);
+
+  let marker   = null;
+  let polyline = L.polyline([], { color: '#42a5f5', weight: 4 }).addTo(map);
+
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+  function setStatus(msg) { statusBar.textContent = msg; }
+
+  function haversineKm(a, b) {
+    const R = 6371;
+    const dLat = (b.lat - a.lat) * Math.PI / 180;
+    const dLng = (b.lng - a.lng) * Math.PI / 180;
+    const sinLat = Math.sin(dLat / 2);
+    const sinLng = Math.sin(dLng / 2);
+    const chord = sinLat * sinLat +
+      Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * sinLng * sinLng;
+    return R * 2 * Math.atan2(Math.sqrt(chord), Math.sqrt(1 - chord));
+  }
+
+  function formatDuration(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+    const s = (totalSec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function updateDurationDisplay() {
+    if (!tripStartTime) return;
+    infoDur.textContent = formatDuration(Date.now() - tripStartTime);
+  }
+
+  // ── Camera ────────────────────────────────────────────────────────────────────
+  btnCamera.addEventListener('click', async () => {
+    if (cameraStream) {
+      // Turn off camera
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+      videoEl.srcObject = null;
+      videoEl.style.display = 'none';
+      placeholder.style.display = '';
+      speedBadge.style.display = 'none';
+      btnCamera.textContent = '📷 Open Camera';
+      btnRecord.disabled = true;
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+      return;
+    }
+
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      videoEl.srcObject = cameraStream;
+      videoEl.style.display = 'block';
+      placeholder.style.display = 'none';
+      speedBadge.style.display = 'block';
+      btnCamera.textContent = '🚫 Close Camera';
+      btnRecord.disabled = false;
+      setStatus('Camera active.');
+    } catch (err) {
+      setStatus('Camera error: ' + err.message);
+    }
+  });
+
+  // ── Recording ─────────────────────────────────────────────────────────────────
+  btnRecord.addEventListener('click', () => {
+    if (!cameraStream) return;
+
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      return;
+    }
+
+    recordedChunks = [];
+    let mimeType = 'video/webm;codecs=vp9';
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+
+    try {
+      mediaRecorder = new MediaRecorder(cameraStream, { mimeType });
+    } catch (e) {
+      setStatus('Recording not supported: ' + e.message);
+      return;
+    }
+
+    mediaRecorder.ondataavailable = e => {
+      if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      recIndicator.style.display = 'none';
+      btnRecord.textContent = '🎥 Start Recording';
+
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const filename = `trip_${Date.now()}.webm`;
+
+      // Trigger download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 3000);
+
+      // Save metadata to Firestore
+      const meta = {
+        filename,
+        size: blob.size,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        tripId: currentTripId || null
+      };
+
+      if (currentTripId) {
+        db.collection('trips').doc(currentTripId)
+          .update({ video: meta })
+          .catch(err => setStatus('Firestore video meta error: ' + err.message));
+      } else {
+        db.collection('recordings').add(meta)
+          .catch(err => setStatus('Firestore video meta error: ' + err.message));
+      }
+
+      setStatus(`Recording saved: ${filename} (${blob.size >= 1048576 ? (blob.size / 1048576).toFixed(1) + ' MB' : (blob.size / 1024).toFixed(1) + ' KB'})`);
+    };
+
+    mediaRecorder.start(1000);
+    recIndicator.style.display = 'flex';
+    btnRecord.textContent = '⏹ Stop Recording';
+    setStatus('Recording…');
+  });
+
+  // ── Geolocation callback ───────────────────────────────────────────────────────
+  function onPosition(position) {
+    const { latitude, longitude, speed } = position.coords;
+    currentSpeedKmh = speed != null ? Math.round(speed * 3.6) : 0;
+    const latlng = { lat: latitude, lng: longitude };
+
+    // Update speed displays
+    speedBadge.textContent = `⚡ ${currentSpeedKmh} km/h`;
+    infoSpeed.textContent  = `${currentSpeedKmh} km/h`;
+    infoLat.textContent    = latitude.toFixed(6);
+    infoLng.textContent    = longitude.toFixed(6);
+
+    // Map marker
+    if (!marker) {
+      marker = L.marker([latitude, longitude]).addTo(map);
+    } else {
+      marker.setLatLng([latitude, longitude]);
+    }
+    marker.bindPopup(
+      `<b>Lat:</b> ${latitude.toFixed(6)}<br><b>Lng:</b> ${longitude.toFixed(6)}<br><b>Speed:</b> ${currentSpeedKmh} km/h`
+    ).openPopup();
+    map.setView([latitude, longitude], map.getZoom() < 15 ? 15 : map.getZoom());
+
+    if (!tripActive) return;
+
+    // Distance accumulation
+    if (lastLatLng) {
+      totalDistanceKm += haversineKm(lastLatLng, latlng);
+      infoDist.textContent = `${totalDistanceKm.toFixed(2)} km`;
+    }
+    lastLatLng = latlng;
+
+    // Polyline trail
+    tripPath.push([latitude, longitude]);
+    polyline.setLatLngs(tripPath);
+
+    setStatus('Tracking…');
+  }
+
+  function onGeoError(err) {
+    setStatus('Geolocation error: ' + err.message);
+  }
+
+  function startGeoWatch() {
+    if (watchId !== null) return;
+    if (!navigator.geolocation) {
+      setStatus('Geolocation not supported.');
+      return;
+    }
+    watchId = navigator.geolocation.watchPosition(onPosition, onGeoError, GEO_OPTIONS);
+  }
+
+  function stopGeoWatch() {
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+  }
+
+  // ── Trip control ──────────────────────────────────────────────────────────────
+  btnTrip.addEventListener('click', async () => {
+    if (!tripActive) {
+      // ── Start Trip ──
+      tripActive      = true;
+      tripStartTime   = Date.now();
+      tripPath        = [];
+      totalDistanceKm = 0;
+      lastLatLng      = null;
+      currentTripId   = null;
+      summaryBox.style.display = 'none';
+      polyline.setLatLngs([]);
+
+      btnTrip.textContent = '⏹ Stop Trip';
+      btnTrip.className   = 'btn btn-red';
+
+      durationTimer = setInterval(updateDurationDisplay, 1000);
+      startGeoWatch();
+      setStatus('Trip started. GPS active.');
+    } else {
+      // ── Stop Trip ──
+      tripActive = false;
+      stopGeoWatch();
+      clearInterval(durationTimer);
+
+      const tripEndTime   = Date.now();
+      const durationMs    = tripEndTime - tripStartTime;
+      const durationFormatted = formatDuration(durationMs);
+
+      btnTrip.textContent = '▶️ Start Trip';
+      btnTrip.className   = 'btn btn-green';
+
+      setStatus('Saving trip to Firestore…');
+
+      const tripDoc = {
+        startTime:    new Date(tripStartTime).toISOString(),
+        endTime:      new Date(tripEndTime).toISOString(),
+        durationMs,
+        durationFormatted,
+        distanceKm:   Math.round(totalDistanceKm * 1000) / 1000,
+        path:         tripPath.map(([lat, lng]) => ({ lat, lng })),
+        createdAt:    firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      try {
+        const docRef = await db.collection('trips').add(tripDoc);
+        currentTripId = docRef.id;
+        setStatus(`Trip saved! Doc ID: ${docRef.id}`);
+      } catch (err) {
+        setStatus('Firestore error: ' + err.message);
+      }
+
+      // Show summary
+      summaryBox.style.display = 'block';
+      summaryBox.innerHTML = `
+        <strong>Trip Summary</strong><br>
+        🕐 Duration: <span class="highlight">${durationFormatted}</span><br>
+        📍 Distance: <span class="highlight">${totalDistanceKm.toFixed(2)} km</span><br>
+        📅 Start: <span class="highlight">${new Date(tripStartTime).toLocaleString()}</span><br>
+        📅 End:   <span class="highlight">${new Date(tripEndTime).toLocaleString()}</span>
+      `;
+    }
+  });
+
+  // ── Start watching geo on load (for the map marker, not the trip) ─────────────
+  startGeoWatch();
+</script>
+</body>
+</html>
