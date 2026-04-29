@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Justin Bank - Mobile Web App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-height: 100vh;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+        }
+
+        .app-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .app-header p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .app-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .balance-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .balance-label {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .balance-amount {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .card-details {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-number {
+            font-size: 14px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .card-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .card-holder {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-expiry {
+            text-align: right;
+        }
+
+        .send-money-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .transactions-section {
+            margin-top: 30px;
+        }
+
+        .transaction-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+
+        .transaction-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .transaction-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .transaction-details h4 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .transaction-details p {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .transaction-amount {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .amount-debit {
+            color: #ff4757;
+        }
+
+        .amount-credit {
+            color: #26de81;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .error-message {
+            color: #ff4757;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons .btn {
+            flex: 1;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading-screen.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            width: 100px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: white;
+            animation: progress 5s ease-in-out forwards;
+        }
+
+        @keyframes progress {
+            0% {
+                width: 0%;
+            }
+            100% {
+                width: 100%;
+            }
+        }
+
+        /* Success Screen */
+        .success-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .success-screen.active {
+            display: flex;
+        }
+
+        .success-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 25px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.5s ease;
+        }
+
+        .checkmark-circle {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #26de81 0%, #20c997 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            animation: popUp 0.5s ease;
+        }
+
+        @keyframes popUp {
+            0% {
+                transform: scale(0);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .checkmark {
+            color: white;
+            font-size: 50px;
+            font-weight: 700;
+        }
+
+        .success-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .success-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .success-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            color: #666;
+        }
+
+        .detail-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .success-message {
+            background: #f0f8ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .success-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .success-buttons .btn {
+            flex: 1;
+        }
+
+        /* Confirmation Screen */
+        .confirmation-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1500;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .confirmation-screen.active {
+            display: flex;
+        }
+
+        .confirmation-content {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        .confirmation-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .confirmation-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .confirmation-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .confirmation-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .confirmation-label {
+            color: #666;
+        }
+
+        .confirmation-value {
+            color: #333;
+            font-weight: 600;
+            word-break: break-word;
+            text-align: right;
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        .confirmation-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .confirmation-buttons .btn {
+            flex: 1;
+        }
+
+        /* Scrollbar */
+        .app-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .app-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .app-content::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        .app-content::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        @media (max-width: 600px) {
+            .app-container {
+                border-radius: 0;
+                max-height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="app-header">
+            <h1>Justin Bank</h1>
+            <p>Your Banking Made Easy</p>
+        </div>
+
+        <!-- Content -->
+        <div class="app-content">
+            <!-- Balance Section -->
+            <div class="balance-section">
+                <div class="balance-label">Available Balance</div>
+                <div class="balance-amount" id="balanceDisplay">€7,936.00</div>
+                <div class="card-details">
+                    <div class="card-number">•••• •••• •••• 3624</div>
+                    <div class="card-info">
+                        <div class="card-holder">
+                            <div>Justin Wheeler</div>
+                        </div>
+                        <div class="card-expiry">
+                            <div>Expires 12/27</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send Money Section -->
+            <div class="send-money-section">
+                <div class="section-title">Quick Actions</div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="openTransferModal()">Send Money</button>
+                    <button class="btn btn-secondary" onclick="alert('Coming Soon')">Request Money</button>
+                </div>
+            </div>
+
+            <!-- Transactions Section -->
+            <div class="transactions-section">
+                <div class="section-title">Recent Transactions</div>
+                <div id="transactionsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Modal -->
+    <div class="modal" id="transferModal">
+        <div class="modal-content">
+            <div class="modal-header">Send Money</div>
+            
+            <div id="step1" class="transfer-step">
+                <div class="form-group">
+                    <label>Transfer Type</label>
+                    <select id="transferType" onchange="selectTransferType()">
+                        <option value="">Select transfer type</option>
+                        <option value="local">Local Transfer</option>
+                        <option value="international">International Transfer</option>
+                    </select>
+                    <div class="error-message" id="transferTypeError">Please select transfer type</div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeTransferModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="proceedToRecipient()">Next</button>
+                </div>
+            </div>
+
+            <div id="step2" class="transfer-step" style="display:none;">
+                <div class="form-group">
+                    <label>Recipient's Full Name</label>
+                    <input type="text" id="recipientName" placeholder="Enter full name">
+                    <div class="error-message" id="recipientNameError">Name is required</div>
+                </div>
+                <div class="form-group">
+                    <label>Bank Account Number</label>
+                    <input type="text" id="accountNumber" placeholder="16-26 digits">
+                    <div class="error-message" id="accountNumberError">Account number must be 16-26 digits</div>
+                </div>
+                <div class="form-group">
+                    <label>Bank Name</label>
+                    <select id="bankName">
+                        <option value="">Select bank</option>
+                        <option value="GCB Bank">GCB Bank</option>
+                        <option value="Ecobank">Ecobank</option>
+                        <option value="Zenith Bank">Zenith Bank</option>
+                        <option value="GTBank">GTBank</option>
+                        <option value="Access Bank">Access Bank</option>
+                        <option value="Standard Chartered">Standard Chartered</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <div class="error-message" id="bankNameError">Bank name is required</div>
+                </div>
+                <div class="form-group">
+                    <label>Bank Branch (Optional)</label>
+                    <input type="text" id="bankBranch" placeholder="Branch name or code">
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="backToStep1()">Back</button>
+                    <button class="btn btn-primary" onclick="proceedToAmount()">Next</button>
+                </div>
+            </div>
+
+            <div id="step3" class="transfer-step" style="display:none;">
+                <div class="form-group">
+                    <label>Amount to Send</label>
+                    <input type="number" id="transferAmount" placeholder="Enter amount" step="0.01">
+                    <div class="error-message" id="amountError">Please enter valid amount</div>
+                </div>
+                <div class="form-group">
+                    <label>Reference/Description (Optional)</label>
+                    <input type="text" id="reference" placeholder="Payment reference">
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="backToStep2()">Back</button>
+                    <button class="btn btn-primary" onclick="reviewTransfer()">Review</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="confirmation-screen" id="confirmationScreen">
+        <div class="confirmation-content">
+            <div class="confirmation-title">Confirm Transfer</div>
+            <div class="confirmation-details">
+                <div class="confirmation-row">
+                    <span class="confirmation-label">Recipient Name:</span>
+                    <span class="confirmation-value" id="confirmRecipientName"></span>
+                </div>
+                <div class="confirmation-row">
+                    <span class="confirmation-label">Bank:</span>
+                    <span class="confirmation-value" id="confirmBankName"></span>
+                </div>
+                <div class="confirmation-row">
+                    <span class="confirmation-label">Account Number:</span>
+                    <span class="confirmation-value" id="confirmAccountNumber"></span>
+                </div>
+                <div class="confirmation-row">
+                    <span class="confirmation-label">Branch:</span>
+                    <span class="confirmation-value" id="confirmBranch"></span>
+                </div>
+                <div class="confirmation-row">
+                    <span class="confirmation-label">Amount:</span>
+                    <span class="confirmation-value" id="confirmAmount"></span>
+                </div>
+                <div class="confirmation-row">
+                    <span class="confirmation-label">Type:</span>
+                    <span class="confirmation-value" id="confirmType"></span>
+                </div>
+            </div>
+            <div class="confirmation-buttons">
+                <button class="btn btn-secondary" onclick="cancelTransfer()">Cancel</button>
+                <button class="btn btn-primary" onclick="processPayment()">Confirm & Pay</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="spinner"></div>
+        <div class="loading-text">Processing Payment</div>
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+    </div>
+
+    <!-- Success Screen -->
+    <div class="success-screen" id="successScreen">
+        <div class="success-content">
+            <div class="checkmark-circle">
+                <div class="checkmark">✓</div>
+            </div>
+            <div class="success-title">Payment Successful!</div>
+            <div class="success-subtitle">Your money has been sent successfully</div>
+            <div class="success-details">
+                <div class="detail-row">
+                    <span class="detail-label">Recipient:</span>
+                    <span class="detail-value" id="successRecipient"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Bank:</span>
+                    <span class="detail-value" id="successBank"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Amount:</span>
+                    <span class="detail-value" id="successAmount"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Transaction ID:</span>
+                    <span class="detail-value" id="successTransactionId"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date & Time:</span>
+                    <span class="detail-value" id="successDateTime"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">New Balance:</span>
+                    <span class="detail-value" id="successNewBalance"></span>
+                </div>
+            </div>
+            <div class="success-message">
+                💰 Money will arrive in a few hours. Please share the transaction ID for reference.
+            </div>
+            <div class="success-buttons">
+                <button class="btn btn-secondary" onclick="shareReceipt()">Share Receipt</button>
+                <button class="btn btn-primary" onclick="closeSuccess()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data
+        let currentBalance = 7936.00;
+        let transactions = [
+            { id: 'TXN001', name: 'Salary Deposit', type: 'credit', amount: 3500.00, date: '2026-04-25', icon: '💰', category: 'Salary' },
+            { id: 'TXN002', name: 'Amazon Purchase', type: 'debit', amount: 89.50, date: '2026-04-24', icon: '📦', category: 'Shopping' },
+            { id: 'TXN003', name: 'Netflix Subscription', type: 'debit', amount: 12.99, date: '2026-04-22', icon: '🎬', category: 'Entertainment' },
+            { id: 'TXN004', name: 'Restaurant Payment', type: 'debit', amount: 56.75, date: '2026-04-21', icon: '🍔', category: 'Dining' },
+            { id: 'TXN005', name: 'Fuel Station', type: 'debit', amount: 65.00, date: '2026-04-20', icon: '⛽', category: 'Transport' },
+            { id: 'TXN006', name: 'Insurance Payment', type: 'debit', amount: 150.00, date: '2026-04-18', icon: '🛡️', category: 'Insurance' },
+            { id: 'TXN007', name: 'Freelance Payment', type: 'credit', amount: 450.00, date: '2026-04-15', icon: '💻', category: 'Income' }
+        ];
+
+        let transferData = {
+            type: '',
+            recipientName: '',
+            accountNumber: '',
+            bankName: '',
+            bankBranch: '',
+            amount: 0,
+            reference: ''
+        };
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            displayTransactions();
+        });
+
+        function displayTransactions() {
+            const container = document.getElementById('transactionsContainer');
+            container.innerHTML = '';
+            
+            const sorted = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            sorted.forEach(txn => {
+                const amountClass = txn.type === 'credit' ? 'amount-credit' : 'amount-debit';
+                const amountSign = txn.type === 'credit' ? '+' : '-';
+                const bgColor = txn.type === 'credit' ? '#f0fdf4' : '#fef2f2';
+                
+                const html = `
+                    <div class="transaction-item">
+                        <div class="transaction-left">
+                            <div class="transaction-icon" style="background-color: ${bgColor};">${txn.icon}</div>
+                            <div class="transaction-details">
+                                <h4>${txn.name}</h4>
+                                <p>${txn.date}</p>
+                            </div>
+                        </div>
+                        <div class="transaction-amount ${amountClass}">${amountSign}€${txn.amount.toFixed(2)}</div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function openTransferModal() {
+            document.getElementById('transferModal').classList.add('active');
+            clearTransferForm();
+        }
+
+        function closeTransferModal() {
+            document.getElementById('transferModal').classList.remove('active');
+            clearTransferForm();
+        }
+
+        function clearTransferForm() {
+            transferData = { type: '', recipientName: '', accountNumber: '', bankName: '', bankBranch: '', amount: 0, reference: '' };
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('transferType').value = '';
+            clearErrors();
+        }
+
+        function clearErrors() {
+            document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
+        }
+
+        function selectTransferType() {
+            transferData.type = document.getElementById('transferType').value;
+        }
+
+        function proceedToRecipient() {
+            clearErrors();
+            if (!transferData.type) {
+                document.getElementById('transferTypeError').classList.add('show');
+                return;
+            }
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        }
+
+        function backToStep1() {
+            clearErrors();
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step1').style.display = 'block';
+        }
+
+        function proceedToAmount() {
+            clearErrors();
+            const name = document.getElementById('recipientName').value.trim();
+            const account = document.getElementById('accountNumber').value.trim();
+            const bank = document.getElementById('bankName').value;
+
+            if (!name) {
+                document.getElementById('recipientNameError').classList.add('show');
+                return;
+            }
+            if (!/^\d{16,26}$/.test(account)) {
+                document.getElementById('accountNumberError').classList.add('show');
+                return;
+            }
+            if (!bank) {
+                document.getElementById('bankNameError').classList.add('show');
+                return;
+            }
+
+            transferData.recipientName = name;
+            transferData.accountNumber = account;
+            transferData.bankName = bank;
+            transferData.bankBranch = document.getElementById('bankBranch').value;
+
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'block';
+        }
+
+        function backToStep2() {
+            clearErrors();
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        }
+
+        function reviewTransfer() {
+            clearErrors();
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+
+            if (!amount || amount <= 0) {
+                document.getElementById('amountError').classList.add('show');
+                return;
+            }
+            if (amount > currentBalance) {
+                document.getElementById('amountError').classList.add('show');
+                document.getElementById('amountError').textContent = 'Insufficient balance';
+                return;
+            }
+
+            transferData.amount = amount;
+            transferData.reference = document.getElementById('reference').value;
+
+            showConfirmation();
+        }
+
+        function showConfirmation() {
+            document.getElementById('transferModal').classList.remove('active');
+            
+            document.getElementById('confirmRecipientName').textContent = transferData.recipientName;
+            document.getElementById('confirmBankName').textContent = transferData.bankName;
+            document.getElementById('confirmAccountNumber').textContent = transferData.accountNumber;
+            document.getElementById('confirmBranch').textContent = transferData.bankBranch || 'Not specified';
+            document.getElementById('confirmAmount').textContent = '€' + transferData.amount.toFixed(2);
+            document.getElementById('confirmType').textContent = transferData.type === 'local' ? 'Local Transfer' : 'International Transfer';
+            
+            document.getElementById('confirmationScreen').classList.add('active');
+        }
+
+        function cancelTransfer() {
+            document.getElementById('confirmationScreen').classList.remove('active');
+        }
+
+        function processPayment() {
+            document.getElementById('confirmationScreen').classList.remove('active');
+            document.getElementById('loadingScreen').classList.add('active');
+
+            setTimeout(() => {
+                completePayment();
+            }, 5000);
+        }
+
+        function completePayment() {
+            const transactionId = 'TXN' + Date.now().toString().slice(-9);
+            const now = new Date();
+            const dateTime = now.toLocaleString();
+
+            // Deduct balance
+            currentBalance -= transferData.amount;
+
+            // Add to transactions
+            const newTransaction = {
+                id: transactionId,
+                name: `Transfer to ${transferData.recipientName}`,
+                type: 'debit',
+                amount: transferData.amount,
+                date: now.toISOString().slice(0, 10),
+                icon: '💸',
+                category: 'Transfer'
+            };
+            transactions.unshift(newTransaction);
+            displayTransactions();
+
+            // Update balance display
+            document.getElementById('balanceDisplay').textContent = '€' + currentBalance.toFixed(2);
+
+            // Show success
+            document.getElementById('loadingScreen').classList.remove('active');
+            
+            document.getElementById('successRecipient').textContent = transferData.recipientName;
+            document.getElementById('successBank').textContent = transferData.bankName;
+            document.getElementById('successAmount').textContent = '€' + transferData.amount.toFixed(2);
+            document.getElementById('successTransactionId').textContent = transactionId;
+            document.getElementById('successDateTime').textContent = dateTime;
+            document.getElementById('successNewBalance').textContent = '€' + currentBalance.toFixed(2);
+            
+            document.getElementById('successScreen').classList.add('active');
+        }
+
+        function shareReceipt() {
+            alert('Receipt copied to clipboard! (In a real app, this would share the receipt)');
+        }
+
+        function closeSuccess() {
+            document.getElementById('successScreen').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
