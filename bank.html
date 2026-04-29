@@ -924,7 +924,7 @@
                 document.getElementById('recipientNameError').classList.add('show');
                 return;
             }
-            if (!/^\d{16,26}$/.test(account)) {
+            if (!/^\d{10,26}$/.test(account)) {
                 document.getElementById('accountNumberError').classList.add('show');
                 return;
             }
